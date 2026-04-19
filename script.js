@@ -1,57 +1,82 @@
-'use strict';
+/* ── Scroll Reveal ── */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('v'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
+/* ── Active Nav Link ── */
+const secs = document.querySelectorAll('section[id]');
+const navAs = document.querySelectorAll('.nav-links a[href^="#"]');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 80) cur = s.id; });
+  navAs.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+});
 
+/* ── Cursor Glow ── */
+const glow = document.createElement('div');
+glow.className = 'cursor-glow';
+document.body.appendChild(glow);
+let mx = 0, my = 0, cx = 0, cy = 0;
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+(function animate() {
+  cx += (mx - cx) * 0.12;
+  cy += (my - cy) * 0.12;
+  glow.style.left = cx + 'px';
+  glow.style.top  = cy + 'px';
+  requestAnimationFrame(animate);
+})();
 
-/**
- * add event on element
- */
+/* ── Counter Animations ── */
+function animateCounter(el) {
+  const text = el.textContent.trim();
+  const match = text.match(/([+\-]?)(\d+)(%|px)?/);
+  if (!match) return;
+  const prefix = match[1], end = parseInt(match[2]), suffix = match[3] || '';
+  let start = 0, duration = 1400, startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    const progress = Math.min((ts - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = prefix + Math.round(eased * end) + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 
-const addEventOnElem = function (elem, type, callback) {
-  if (elem.length > 1) {
-    for (let i = 0; i < elem.length; i++) {
-      elem[i].addEventListener(type, callback);
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      animateCounter(e.target);
+      counterObs.unobserve(e.target);
     }
-  } else {
-    elem.addEventListener(type, callback);
-  }
-}
+  });
+}, { threshold: 0.5 });
 
+document.querySelectorAll('.hero-big-stat').forEach(el => counterObs.observe(el));
 
+/* ── Project card tilt ── */
+document.querySelectorAll('.project-item').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = `perspective(800px) rotateX(${-y * 2}deg) rotateY(${x * 2}deg)`;
+  });
+  card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+});
 
-/**
- * toggle navbar
- */
+/* ── Navbar blur on scroll ── */
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+  nav.style.background = window.scrollY > 40
+    ? 'rgba(8,12,20,0.95)'
+    : 'rgba(8,12,20,0.82)';
+});
 
-const navbar = document.querySelector("[data-navbar]");
-const navLinks = document.querySelectorAll("[data-nav-link]");
-const navToggler = document.querySelector("[data-nav-toggler]");
-
-const toggleNavbar = function () {
-  navbar.classList.toggle("active");
-  navToggler.classList.toggle("active");
-}
-
-addEventOnElem(navToggler, "click", toggleNavbar);
-
-const closeNavbar = function () {
-  navbar.classList.remove("active");
-  navToggler.classList.remove("active");
-}
-
-addEventOnElem(navLinks, "click", closeNavbar);
-
-
-
-/**
- * header active
- */
-
-const header = document.querySelector("[data-header]");
-
-window.addEventListener("scroll", function () {
-  if (window.scrollY > 100) {
-    header.classList.add("active");
-  } else {
-    header.classList.remove("active");
-  }
+/* ── Smooth page fade-in ── */
+document.body.style.opacity = '0';
+window.addEventListener('load', () => {
+  document.body.style.transition = 'opacity 0.6s ease';
+  document.body.style.opacity = '1';
 });
